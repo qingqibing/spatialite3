@@ -1,0 +1,1 @@
+include ':app', ':Spatialite-Database-Driver:spatialite-db-driver'
