@@ -5,5 +5,5 @@
     from doing an 'import jsqlite;'
 -->
 <manifest
-    package="cl.zionit.spatialite3">
+    package="spatialite_db_driver">
 </manifest>

@@ -2,57 +2,53 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:ems="http://schemas.android.com/apk/res-auto"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-
+    style="@style/fondo_default"
     tools:context=".MainActivity">
 
     <TextView
         android:id="@+id/communicate"
-        android:text="--"
-        android:layout_width="match_parent"
+        android:text="@string/empty_text"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
-        android:textAppearance="?android:textAppearanceLarge"
-        android:gravity="center"
+        style="@style/labels_normal"
+        android:layout_centerHorizontal="true"
+        android:drawableStart="@drawable/ic_place_black_24dp"
         />
 
     <TextView
         android:id="@+id/card_info"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/communicate"
-        android:textSize="20sp"
-        android:textAppearance="?android:textAppearanceLarge"
-        android:gravity="center"
-        android:text="--"/>
+        style="@style/labels_normal"
+        android:layout_centerHorizontal="true"
+        android:drawableStart="@drawable/ic_directions_black_24dp"
+        android:text="@string/empty_text"/>
 
     <TextView
         android:id="@+id/title_maximum_speed"
-        android:text="velocidad maxima"
-        android:layout_width="wrap_content"
+        android:text="@string/velocidad_maxima"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:textAppearanceLarge"
+        style="@style/labels_normal"
         android:textSize="30sp"
-        android:layout_below="@id/card_info"
-        android:layout_centerHorizontal="true"/>
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/card_info"/>
 
 
 
     <LinearLayout
         android:id="@+id/container_velocity"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="110dp"
         android:layout_below="@id/title_maximum_speed"
+        android:layout_centerHorizontal="true"
         android:orientation="horizontal"
         android:gravity="center|bottom">
 
         <TextView
             android:id="@+id/velocity"
-            android:text="0"
+            android:text="@string/empty_velocity"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:textAppearanceLarge"
@@ -62,25 +58,30 @@
             android:paddingBottom="0dp"
             android:paddingStart="25dp"
             android:paddingEnd="25dp"
-            android:textSize="60sp"
-            android:elevation="16dp"/>
+            android:textSize="60sp"/>
 
-        <TextView
-            android:textAppearance="?android:textAppearanceMedium"
-            android:text="km/h"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+
 
     </LinearLayout>
 
+    <TextView
+        android:textAppearance="?android:textAppearanceMedium"
+        android:text="@string/km_h"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/container_velocity"
+        android:layout_below="@id/title_maximum_speed"
+        android:layout_marginTop="80dp"/>
 
     <LinearLayout
         android:id="@+id/container_latlong"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:layout_marginTop="10dp"
+        android:baselineAligned="false"
         android:layout_below="@id/container_velocity"
-        android:layout_marginTop="10dp">
+        android:layout_centerHorizontal="true">
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -90,19 +91,16 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="LATITUD"
-                android:gravity="center"
-                android:textAppearance="?android:textAppearanceLarge"
-                android:textSize="20sp"/>
+                android:text="@string/latitud"
+                style="@style/labels_normal"
+                android:textStyle="bold"/>
 
             <TextView
                 android:id="@+id/lbl_lat"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="-72.3652"
-                android:gravity="center"
-                android:textAppearance="?android:textAppearanceLarge"
-                android:textSize="18sp"/>
+                android:text="@string/empty_velocity"
+                style="@style/labels_pequeños"/>
 
         </LinearLayout>
 
@@ -114,19 +112,15 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="LONGITUD"
-                android:gravity="center"
-                android:textAppearance="?android:textAppearanceLarge"
-                android:textSize="20sp"/>
-
+                android:text="@string/longitud"
+                style="@style/labels_normal"
+                android:textStyle="bold"/>
             <TextView
                 android:id="@+id/lbl_long"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="-72.3652"
-                android:gravity="center"
-                android:textAppearance="?android:textAppearanceLarge"
-                android:textSize="18sp"/>
+                android:text="@string/empty_velocity"
+                style="@style/labels_pequeños"/>
         </LinearLayout>
     </LinearLayout>
 
@@ -135,10 +129,11 @@
     <Button
         android:id="@+id/run_point_in_polygon"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="70dp"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:text="descargar datos"
+        android:text="@string/descargar_datos"
+        android:drawableBottom="@drawable/ic_cloud_download_black_24dp"
 
         />
 

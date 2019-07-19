@@ -154,52 +154,22 @@ public class GeoDatabaseHandler {
     }
 
     String[] queryPointInPolygon(String gpsPoint) {
-
-        //just a hard-coded GPS point
-//        String gpsPoint = "POINT(-97.837543 30.418986)";
-
-
-        String query = "SELECT id,nombre, ST_Distance(`polygon`, GeomFromText('"+gpsPoint+"'))*111319 AS distancia, limite,descripcion FROM geocerca WHERE distancia < 1;";
-
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Execute query: ").append(query).append("\n\n");
-
+        String query = "SELECT id,nombre, ST_Distance(`polygon`, GeomFromText('"+gpsPoint+"'))*111319 AS distancia, limite,descripcion FROM geocerca WHERE distancia = 0.0 LIMIT 1;";
         String[] respuesta = new String[5];
         try {
             Stmt stmt = spatialiteDb.prepare(query);
-            Log.i(TAG, "result column count: " + stmt.column_count());
-            //in my example, num columns is 9
-            //I don't know if minus 1 is always needed here
             int maxColumns = stmt.column_count() ;
-
-            for (int i = 0; i < maxColumns; i++) {
-                stringBuilder.append(stmt.column_name(i)).append(" | ");
-            }
-            stringBuilder.append("\n--------------------------------------------\n");
-
-
             int rowIndex = 0;
             while (stmt.step()) {
-
-                stringBuilder.append("\t");
                 for (int i = 0; i < maxColumns; i++) {
                     respuesta[i] = stmt.column_string(i);
-                    //stringBuilder.append(stmt.column_string(i)).append(" | ");
-
-//                    System.out.println("ACACACA"+stmt.column_string(i));
-//                    Log.i(TAG, "result column ACACACA: " + stmt.column_string(i));
                 }
-                stringBuilder.append("\n");
-
                 if (rowIndex++ > 2) break;
             }
-            stringBuilder.append("\t...");
             stmt.close();
         } catch (jsqlite.Exception e) {
             Log.e(TAG_SL,e.getMessage());
         }
-
-        stringBuilder.append("\ndone\n");
 
         return respuesta;
     }
@@ -218,45 +188,13 @@ public class GeoDatabaseHandler {
         }
     }
 
-    String insertPolygon(String query){
-//        String  query = "INSERT INTO `geocerca` (`geocerca`,`nombre`,`limite`,`polygon`) VALUES ('1','test1',50,GeomFromText('POLYGON((-37.474445 -72.349559, -37.475682 -72.349650, -37.475754 -72.348167, -37.474517 -72.348070, -37.474445 -72.349559))',4326))";
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("issue point in polygon query on insertar ..");
-        stringBuilder.append("Execute query: ").append(query).append("\n\n");
-
+    void insertPolygon(String query){
         try {
             Stmt stmt = spatialiteDb.prepare(query);
-
-
-            Log.i(TAG, "result column count: " + stmt.column_count());
-
-            //in my example, num columns is 9
-            //I don't know if minus 1 is always needed here
-            int maxColumns = stmt.column_count() - 1;
-
-            for (int i = 0; i < maxColumns; i++) {
-                stringBuilder.append(stmt.column_name(i)).append(" | ");
-            }
-            stringBuilder.append("\n--------------------------------------------\n");
-
-
-            int rowIndex = 0;
-            while (stmt.step()) {
-                stringBuilder.append("\t");
-                for (int i = 0; i < maxColumns; i++) {
-                    stringBuilder.append(stmt.column_string(i)).append(" | ");
-                }
-                stringBuilder.append("\n");
-
-                if (rowIndex++ > 10) break;
-            }
-            stringBuilder.append("\t...");
+            stmt.step();
             stmt.close();
         } catch (jsqlite.Exception e) {
             Log.e(TAG_SL,e.getMessage());
         }
-        stringBuilder.append("\ndone\n");
-
-        return stringBuilder.toString();
     }
 }

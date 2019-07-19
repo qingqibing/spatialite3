@@ -3,29 +3,27 @@ package cl.zionit.spatialite3;
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Locale;
 
 import cl.zionit.spatialite3.retrofit.ApiService;
@@ -35,15 +33,13 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import static cl.zionit.spatialite3.Utilidad.formatearNumerosMiles;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, TextToSpeech.OnInitListener {
 
     private GeoDatabaseHandler gdbHandler;
     private TextView communicateTextView, lbl_long, lbl_lat, velocity, card_info;
     private Button run_point_in_polygon;
-
-
-    double longitude;
-    double latitude;
 
     private LocationManager locationMangaer = null;
     private LocationListener locationListener = null;
@@ -52,15 +48,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     TextToSpeech textToSpeech;
 
-    Integer[] id = new Integer[3];
+    Integer[] id = new Integer[1];
+    Integer[] repeticiones  = new Integer[1];
+    Double[] distanciaAnterior = new Double[1];
 
-
-//    MyLocation myLocation = new MyLocation();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if(getResources().getBoolean(R.bool.portrait_only)){
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }else{
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        }
 
 
         communicateTextView = (TextView) findViewById(R.id.communicate);
@@ -68,36 +70,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         lbl_lat = (TextView) findViewById(R.id.lbl_lat);
         card_info = (TextView) findViewById(R.id.card_info);
         velocity = (TextView) findViewById(R.id.velocity);
-
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                        PackageManager.PERMISSION_GRANTED) {
-
-            locationMangaer = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            locationListener = new MyLocationListener();
-            locationMangaer.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000, 10, locationListener);
-
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION},
-                    INITIAL_REQUEST);
-        }
-
-
-//        myLocation.getLocation(getApplicationContext(), locationResult);
-//        boolean r = myLocation.getLocation(getApplicationContext(),
-//                locationResult);
-
-
-
-
-
         run_point_in_polygon = (Button) findViewById(R.id.run_point_in_polygon);
 
-
-//        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
 
         //Note: GeoDatabaseHandler here isn't doing too much work since this is a simple example
@@ -109,6 +83,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             e.printStackTrace();
         }
 
+        repeticiones[0] = 0;
+        distanciaAnterior[0] = 0.0;
+
         run_point_in_polygon.setOnClickListener(this);
         textToSpeech = new TextToSpeech(getApplicationContext(), this);
     }
@@ -118,23 +95,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onResume() {
         super.onResume();
 
-        locationMangaer = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        locationListener = new MyLocationListener();
-
-
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION},
+                    INITIAL_REQUEST);
         } else {
+            locationMangaer = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            locationListener = new MyLocationListener();
             locationMangaer.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
         }
-
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-
-
         if (textToSpeech != null) {
             textToSpeech.stop();
             textToSpeech.shutdown();
@@ -146,63 +122,82 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (status == TextToSpeech.SUCCESS) {
             Configuration c = new Configuration(getResources().getConfiguration());
             c.locale = new Locale("es", "ES");
-
             textToSpeech.setLanguage(c.locale);
-//            int result = textToSpeech.setLanguage(Locale.US);
-            /*if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-
-            }*/
         }
     }
 
     /*----------Listener class to get coordinates ------------- */
     private class MyLocationListener implements LocationListener {
-
-
-
-
         @Override
-        public void onLocationChanged(Location loc) {
-
-//            Toast.makeText(getBaseContext(),"Location changed : Lat: " + loc.getLatitude()+ " Lng: " + loc.getLongitude(), Toast.LENGTH_SHORT).show();
-
-            /*----------to get City-Name from coordinates ------------- */
-//            String cityName=null;
-            /*Geocoder gcd = new Geocoder(getBaseContext(),Locale.getDefault());
-            List<Address> addresses;
-            try {
-                addresses = gcd.getFromLocation(loc.getLatitude(), loc.getLongitude(), 1);
-                if (addresses.size() > 0){
-                    cityName=addresses.get(0).getLocality() + ", "+addresses.get(0).getCountryName();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }*/
+        public void onLocationChanged(final Location loc) {
             if (gdbHandler != null) {
-                String point = "POINT(" + loc.getLatitude() + " " + loc.getLongitude() + ")";
-                String[] response = gdbHandler.queryPointInPolygon(point);
+                AsyncTask.execute(new Runnable() {
+                    @Override
+                    public void run() {
 
-                if (textToSpeech != null) {
-                         if (response[1] != null) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                String point = "POINT(" + loc.getLatitude() + " " + loc.getLongitude() + ")";
+                                String[] response = gdbHandler.queryPointInPolygon(point);
+                                if (textToSpeech != null) {
+                                    if (response[0] != null && response[1] != null) {
+                                        if (id[0] != null && id[0] != Integer.parseInt(response[0])) {
+                                            repeticiones[0] = 0;
+                                        }
+                                        if (repeticiones[0] < 1) {
 
-                             String s = "Estás a  " + Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2) + " kilometros de  " + response[1].toLowerCase() + " y el maximo de velocidad es" + response[3] + " kilometros por hora";
-                             speak(s);
+                                            repeticiones[0]++;
 
+                                            if (distanciaAnterior[0] == 0.0 && Double.parseDouble(response[2]) > 0.0 ){
+                                                String condicion = "";
+                                                if (id[0] > 0){
+                                                    condicion = "saliendo de "+ response[1].toLowerCase();
+                                                }else{
+                                                    condicion = " á "+ Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2)+ "de " + response[1].toLowerCase();
+                                                }
+                                                String saliendo = "Estás "+ condicion+" y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                                                speak(saliendo);
+                                            }
 
-                             if(!textToSpeech.isSpeaking()) {
-                                 textToSpeech = new TextToSpeech(MainActivity.this,MainActivity.this);
-                             }
-                             if (velocity != null) velocity.setText(response[3]);
-                             if (card_info != null) card_info.setText(response[4]);
-                             if (communicateTextView != null)
-                                 communicateTextView.setText(response[1]);
-                             if (lbl_lat != null)
-                                 lbl_lat.setText(String.valueOf(loc.getLatitude()));
-                             if (lbl_long != null)
-                                 lbl_long.setText(String.valueOf(loc.getLongitude()));
-                         }
-                   }
+                                            if (Double.parseDouble(response[2]) == 0.0){
+                                                String s = "Estás en " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                                                speak(s);
+                                                if (!textToSpeech.isSpeaking()) {
+                                                    textToSpeech = new TextToSpeech(MainActivity.this, MainActivity.this);
+                                                }
+                                            }
 
+                                            if (distanciaAnterior[0] > 0.0 && Double.parseDouble(response[2] ) < distanciaAnterior[0]){
+                                                String entrando = "Estás a "+Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2) + " metros de  " +" entrar a " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                                                speak(entrando);
+                                            }
+
+                                        }
+
+                                        if (velocity != null) velocity.setText(response[3]);
+                                        if (card_info != null) card_info.setText(response[4]);
+                                        if (communicateTextView != null)communicateTextView.setText(response[1]);
+
+                                        id[0] = Integer.parseInt(response[0]);
+                                        distanciaAnterior[0] = Double.parseDouble(response[2]);
+                                    }else{
+                                        id[0] = 0;
+                                        if (velocity != null) velocity.setText(getResources().getString(R.string.empty_velocity));
+                                        if (card_info != null) card_info.setText("Ninguna geocerca encontrada");
+                                        if (communicateTextView != null)communicateTextView.setText("Ninguna geocerca encontrada");
+                                    }
+                                }
+
+                                if (lbl_lat != null)
+                                    lbl_lat.setText(String.valueOf(formatearNumerosMiles(loc.getLatitude())));
+                                if (lbl_long != null)
+                                    lbl_long.setText(String.valueOf(formatearNumerosMiles(loc.getLongitude())));
+                            }
+                        });
+
+                    }
+                });
             }
         }
 
@@ -275,40 +270,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-
-
     private void speak(String text){
         //textToSpeech.setPitch(2); graves y agudos
         if (textToSpeech != null){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+                textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, null);
             }else{
-                textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+                textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null);
             }
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
 
     @Override
     public void onDestroy() {

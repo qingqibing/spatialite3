@@ -6,4 +6,11 @@
     <string name="run_simple_test_button">run simple sql test</string>
     <string name="get_version_button">get version info</string>
     <string name="run_point_in_polygon">Run point in polygon test</string>
+    <string name="empty_text">--</string>
+    <string name="empty_velocity">0</string>
+    <string name="velocidad_maxima">velocidad maxima</string>
+    <string name="km_h">km/h</string>
+    <string name="latitud">LATITUD</string>
+    <string name="longitud">LONGITUD</string>
+    <string name="descargar_datos">descargar datos</string>
 </resources>
