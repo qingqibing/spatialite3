@@ -3,6 +3,7 @@ package cl.zionit.spatialite3;
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -35,22 +36,21 @@ import retrofit2.Response;
 
 import static cl.zionit.spatialite3.Utilidad.formatearNumerosMiles;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, TextToSpeech.OnInitListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener/*, TextToSpeech.OnInitListener*/ {
 
     private GeoDatabaseHandler gdbHandler;
     private TextView communicateTextView, lbl_long, lbl_lat, velocity, card_info;
     private Button run_point_in_polygon;
 
-    private LocationManager locationMangaer = null;
-    private LocationListener locationListener = null;
+
 
     private static final int INITIAL_REQUEST = 1337;
 
-    TextToSpeech textToSpeech;
+    /*TextToSpeech textToSpeech;*/
 
-    Integer[] id = new Integer[1];
+/*    Integer[] id = new Integer[1];
     Integer[] repeticiones  = new Integer[1];
-    Double[] distanciaAnterior = new Double[1];
+    Double[] distanciaAnterior = new Double[1];*/
 
 
     @Override
@@ -83,11 +83,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             e.printStackTrace();
         }
 
-        repeticiones[0] = 0;
-        distanciaAnterior[0] = 0.0;
+        /*repeticiones[0] = 0;
+        distanciaAnterior[0] = 0.0;*/
+
+
+
 
         run_point_in_polygon.setOnClickListener(this);
-        textToSpeech = new TextToSpeech(getApplicationContext(), this);
+//        textToSpeech = new TextToSpeech(getApplicationContext(), this);
     }
 
 
@@ -102,32 +105,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             Manifest.permission.ACCESS_COARSE_LOCATION},
                     INITIAL_REQUEST);
         } else {
-            locationMangaer = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            locationListener = new MyLocationListener();
-            locationMangaer.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
+
+
+
+            Intent intent = new Intent(MainActivity.this,GpsService.class);
+            stopService(intent);
+            startService(intent);
+
+
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (textToSpeech != null) {
+/*        if (textToSpeech != null) {
             textToSpeech.stop();
             textToSpeech.shutdown();
-        }
+        }*/
     }
 
-    @Override
+/*    @Override
     public void onInit(int status) {
-        if (status == TextToSpeech.SUCCESS) {
+*//*        if (status == TextToSpeech.SUCCESS) {
             Configuration c = new Configuration(getResources().getConfiguration());
             c.locale = new Locale("es", "ES");
             textToSpeech.setLanguage(c.locale);
-        }
-    }
+        }*//*
+    }*/
+
+
 
     /*----------Listener class to get coordinates ------------- */
-    private class MyLocationListener implements LocationListener {
+/*    public class MyLocationListener implements LocationListener {
         @Override
         public void onLocationChanged(final Location loc) {
             if (gdbHandler != null) {
@@ -215,7 +225,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onStatusChanged(String provider, int status, Bundle extras) {
             // TODO Auto-generated method stub
         }
-    }
+    }*/
 
     void descarga() {
 
@@ -270,7 +280,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-    private void speak(String text){
+/*    private void speak(String text){
         //textToSpeech.setPitch(2); graves y agudos
         if (textToSpeech != null){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -279,7 +289,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null);
             }
         }
-    }
+    }*/
 
 
     @Override

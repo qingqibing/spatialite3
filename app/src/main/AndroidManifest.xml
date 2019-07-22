@@ -22,6 +22,7 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
         >
+        <service android:enabled="true" android:name="cl.zionit.spatialite3.GpsService"/>
 
         <activity android:name=".MainActivity" android:turnScreenOn="true" >
             <intent-filter>
