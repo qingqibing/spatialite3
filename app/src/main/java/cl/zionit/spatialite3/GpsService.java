@@ -10,17 +10,21 @@ import android.content.res.Configuration;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.speech.tts.TextToSpeech;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.widget.TextView;
 
 import java.io.IOException;
 import java.util.Locale;
 
-public class GpsService extends Service implements TextToSpeech.OnInitListener{
+import static cl.zionit.spatialite3.Utilidad.formatearNumerosMiles;
+
+public  class GpsService extends Service {
 
 
     private Integer[] id = new Integer[1];
@@ -29,96 +33,114 @@ public class GpsService extends Service implements TextToSpeech.OnInitListener{
 
     private LocationManager locationMangaer = null;
     private LocationListener locationListener = null;
-    private GeoDatabaseHandler gdbHandler;
+    private GeoDatabaseHandler gdbHandler = null;
 
     private Context context = this;
     private TextToSpeech textToSpeech;
 
     private static final int TWO_MINUTES = 1000 * 60 * 2;
 
-    Intent intent;
-    public static final String BROADCAST_ACTION = "Hello World";
 
     public Location previousBestLocation = null;
 
     @Override
     public void onCreate() {
-        super.onCreate();
-
-        intent = new Intent(BROADCAST_ACTION);
 
 
-        textToSpeech = new TextToSpeech(context,this );
-        try {
-            gdbHandler = new GeoDatabaseHandler(this);
-        } catch (IOException e) {
-            e.printStackTrace();
+//        intent = new Intent(BROADCAST_ACTION);
+    if (textToSpeech != null){
+        if(!textToSpeech.isSpeaking()) {
+            textToSpeech = new TextToSpeech(context, new TextToSpeech.OnInitListener() {
+                @Override
+                public void onInit(int status) {
+                    Log.i("*****", "On Init");
+                    if (status == TextToSpeech.SUCCESS) {
+                        textToSpeech.setLanguage(new Locale("es", "ES"));
+                    }
+                }
+            });
+        }
+    }else{
+        textToSpeech = new TextToSpeech(context, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                Log.i("*****", "On Init");
+                if (status == TextToSpeech.SUCCESS) {
+                    textToSpeech.setLanguage(new Locale("es", "ES"));
+                }
+            }
+        });
+    }
+
+
+
+
+        if (gdbHandler == null){
+            try {
+                gdbHandler = new GeoDatabaseHandler(this);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
 
         locationMangaer = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         locationListener = new LocationListManager();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
-        System.out.println("entrando a startCommand  ONCREATE" );
+        }
+        locationMangaer.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
+
+        Log.i("*****", "On CREATE");
+        Log.i("*****", "On CREATE");
 
         repeticiones[0] = 0;
         distanciaAnterior[0] = 0.0;
 
 
 
-
+        super.onCreate();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         System.out.println("entrando a startCommand");
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-        }
-        locationMangaer.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
-
         return START_STICKY;
     }
-
-    public IBinder onUnBind(Intent arg0) {
-        Log.i("HERE", "onUnBind()");
-        textToSpeech.speak("something is working", textToSpeech.QUEUE_FLUSH, null);
-        return null;
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        Log.i("HERE", "onBind()" );
-        return null;
-    }
-
-
-
 
 
 
     @Override
     public void onDestroy() {
+
+        Log.i("*****", "On Destroy");
+        Log.i("*****", "On Destroy");
+
         if (textToSpeech != null) {
             textToSpeech.stop();
             textToSpeech.shutdown();
+
+            textToSpeech = null;
         }
 
+//        onCreate();
         locationMangaer.removeUpdates(locationListener);
         super.onDestroy();
     }
 
+
     @Override
-    public void onInit(int status) {
-        if (status == TextToSpeech.SUCCESS) {
-            Configuration c = new Configuration(getResources().getConfiguration());
-            c.locale = new Locale("es", "ES");
-            textToSpeech.setLanguage(c.locale);
-        }
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 
 
-    public static Thread performOnBackgroundThread(final Runnable runnable) {
+
+
+
+
+/*    public static Thread performOnBackgroundThread(final Runnable runnable) {
         final Thread t = new Thread() {
             @Override
             public void run() {
@@ -131,7 +153,7 @@ public class GpsService extends Service implements TextToSpeech.OnInitListener{
         };
         t.start();
         return t;
-    }
+    }*/
 
     protected boolean isBetterLocation(Location location, Location currentBestLocation) {
         if (currentBestLocation == null) {
@@ -169,10 +191,7 @@ public class GpsService extends Service implements TextToSpeech.OnInitListener{
             return true;
         } else if (isNewer && !isLessAccurate) {
             return true;
-        } else if (isNewer && !isSignificantlyLessAccurate && isFromSameProvider) {
-            return true;
-        }
-        return false;
+        } else return isNewer && !isSignificantlyLessAccurate && isFromSameProvider;
     }
 
     /** Checks whether two providers are the same */
@@ -184,6 +203,7 @@ public class GpsService extends Service implements TextToSpeech.OnInitListener{
     }
 
 
+
     public class LocationListManager implements LocationListener {
 
         @Override
@@ -191,15 +211,15 @@ public class GpsService extends Service implements TextToSpeech.OnInitListener{
 
 
             Log.i("*****", "Location changed");
-            if(isBetterLocation(loc, previousBestLocation)) {
+//            if(isBetterLocation(loc, previousBestLocation)) {
                 loc.getLatitude();
                 loc.getLongitude();
 
-                /* TextView velocity = (TextView) ((MainActivity) context.getApplicationContext()).findViewById(R.id.velocity);
-        TextView card_info = (TextView) ((MainActivity) context).findViewById(R.id.card_info);
-        TextView communicateTextView = (TextView) ((MainActivity) context).findViewById(R.id.communicate);
-        TextView lbl_lat = (TextView) ((MainActivity) context).findViewById(R.id.lbl_lat);
-        TextView lbl_long = (TextView) ((MainActivity) context).findViewById(R.id.lbl_long);*/
+                /*TextView velocity = (TextView) ((MainActivity) context.getApplicationContext()).findViewById(R.id.velocity);
+                TextView card_info = (TextView) ((MainActivity) context).findViewById(R.id.card_info);
+                TextView communicateTextView = (TextView) ((MainActivity) context).findViewById(R.id.communicate);
+                TextView lbl_lat = (TextView) ((MainActivity) context).findViewById(R.id.lbl_lat);
+                TextView lbl_long = (TextView) ((MainActivity) context).findViewById(R.id.lbl_long);*/
 
 
                 String point = "POINT(" + loc.getLatitude() + " " + loc.getLongitude() + ")";
@@ -232,45 +252,68 @@ public class GpsService extends Service implements TextToSpeech.OnInitListener{
                     }*/
 
                             if (valor == 0.0) {
-                                String s = "Estás en " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                                final String s = "Estás en " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
                                 speak(s);
+/*                                if (textToSpeech != null) {
+                                    AsyncTask.execute(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                                textToSpeech.speak(s, TextToSpeech.QUEUE_ADD, null, null);
+                                            } else {
+                                                textToSpeech.speak(s, TextToSpeech.QUEUE_ADD, null);
+                                            }
+                                        }
+                                    });
+
+                                }*/
 //                        if (!textToSpeech.isSpeaking()) {
 //                            textToSpeech = new TextToSpeech(MainActivity.this, MainActivity.this);
 //                        }
                             }
 
-                            if (distanciaAnterior[0] > 0.0 && valor < distanciaAnterior[0]) {
-                                String entrando = "Estás a " + Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2) + " metros de  " + " entrar a " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                            if (valor > 0.0/* && valor < distanciaAnterior[0]*/) {
+                                final String entrando = "Estás a " + Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2) + " metros de  " + " entrar a " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
                                 speak(entrando);
+/*                                if (textToSpeech != null) {
+                                    AsyncTask.execute(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                                textToSpeech.speak(entrando, TextToSpeech.QUEUE_ADD, null, null);
+                                            } else {
+                                                textToSpeech.speak(entrando, TextToSpeech.QUEUE_ADD, null);
+                                            }
+                                        }
+                                    });
+
+                                }*/
                             }
 
                         }
 
-               /* if (velocity != null) velocity.setText(response[3]);
-                if (card_info != null) card_info.setText(response[4]);
-                if (communicateTextView != null)communicateTextView.setText(response[1]);*/
+                       /* if (velocity != null) velocity.setText(response[3]);
+                        if (card_info != null) card_info.setText(response[4]);
+                        if (communicateTextView != null) communicateTextView.setText(response[1]);*/
 
                         id[0] = Integer.parseInt(response[0]);
                         distanciaAnterior[0] = Double.parseDouble(response[2]);
                     } else {
                         id[0] = 0;
-              /*if (velocity != null) velocity.setText(context.getResources().getString(R.string.empty_velocity));
-                if (card_info != null) card_info.setText("Ninguna geocerca encontrada");
-                if (communicateTextView != null)communicateTextView.setText("Ninguna geocerca encontrada");*/
+                       /* if (velocity != null)
+                            velocity.setText(context.getResources().getString(R.string.empty_velocity));
+                        if (card_info != null) card_info.setText("Ninguna geocerca encontrada");
+                        if (communicateTextView != null)
+                            communicateTextView.setText("Ninguna geocerca encontrada");*/
                     }
                 }
 
-       /* if (lbl_lat != null)lbl_lat.setText(String.valueOf(formatearNumerosMiles(loc.getLatitude())));
-        if (lbl_long != null)lbl_long.setText(String.valueOf(formatearNumerosMiles(loc.getLongitude())));*/
+               /* if (lbl_lat != null)
+                    lbl_lat.setText(String.valueOf(formatearNumerosMiles(loc.getLatitude())));
+                if (lbl_long != null)
+                    lbl_long.setText(String.valueOf(formatearNumerosMiles(loc.getLongitude())));*/
 
-
-
-
-
-
-
-
-            }
+//            }
         }
 
         @Override
@@ -288,14 +331,16 @@ public class GpsService extends Service implements TextToSpeech.OnInitListener{
 
         }
 
-        private void speak(String text) {
-            //textToSpeech.setPitch(2); graves y agudos
-            if (textToSpeech != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, null);
-                } else {
-                    textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null);
-                }
+
+    }
+
+    private void speak(String text) {
+        //textToSpeech.setPitch(2); graves y agudos
+        if (textToSpeech != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, null);
+            } else {
+                textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null);
             }
         }
     }

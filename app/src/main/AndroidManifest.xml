@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
 
 
@@ -22,7 +23,7 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
         >
-        <service android:enabled="true" android:name="cl.zionit.spatialite3.GpsService"/>
+        <service android:name=".ServiceGps" android:exported="false"/>
 
         <activity android:name=".MainActivity" android:turnScreenOn="true" >
             <intent-filter>

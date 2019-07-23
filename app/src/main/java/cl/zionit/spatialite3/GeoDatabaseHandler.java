@@ -154,7 +154,7 @@ public class GeoDatabaseHandler {
     }
 
     String[] queryPointInPolygon(String gpsPoint) {
-        String query = "SELECT id,nombre, ST_Distance(`polygon`, GeomFromText('"+gpsPoint+"'))*111319 AS distancia, limite,descripcion FROM geocerca WHERE distancia = 0.0 LIMIT 1;";
+        String query = "SELECT id,nombre, ST_Distance(`polygon`, GeomFromText('"+gpsPoint+"'))*111319 AS distancia, limite,descripcion FROM geocerca WHERE distancia < 50 LIMIT 1;";
         String[] respuesta = new String[5];
         try {
             Stmt stmt = spatialiteDb.prepare(query);
