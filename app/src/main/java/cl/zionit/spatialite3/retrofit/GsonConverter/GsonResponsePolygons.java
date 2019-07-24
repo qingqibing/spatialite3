@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
-import cl.zionit.spatialite3.Polygonos;
+import cl.zionit.spatialite3.clases.Polygonos;
 
 public class GsonResponsePolygons {
     @SerializedName("estado")

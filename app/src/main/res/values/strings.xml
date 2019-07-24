@@ -13,4 +13,5 @@
     <string name="latitud">LATITUD</string>
     <string name="longitud">LONGITUD</string>
     <string name="descargar_datos">descargar datos</string>
+    <string name="dialog_message_verify_conexion">Verificando conexion a internet</string>
 </resources>

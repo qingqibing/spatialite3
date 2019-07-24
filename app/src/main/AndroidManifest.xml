@@ -23,7 +23,7 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
         >
-        <service android:name=".ServiceGps" android:exported="false"/>
+        <service android:name=".Servicios.ServiceGps" android:exported="false"/>
 
         <activity android:name=".MainActivity" android:turnScreenOn="true" >
             <intent-filter>

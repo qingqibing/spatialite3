@@ -1,4 +1,4 @@
-package cl.zionit.spatialite3;
+package cl.zionit.spatialite3.clases;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

@@ -1,4 +1,4 @@
-package cl.zionit.spatialite3;
+package cl.zionit.spatialite3.utilidad;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
