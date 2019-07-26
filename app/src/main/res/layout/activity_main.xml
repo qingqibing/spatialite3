@@ -74,6 +74,7 @@
         android:layout_marginTop="80dp"/>
 
     <LinearLayout
+        android:visibility="gone"
         android:id="@+id/container_latlong"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -127,6 +128,7 @@
 
 
     <Button
+        android:visibility="gone"
         android:id="@+id/run_point_in_polygon"
         android:layout_width="match_parent"
         android:layout_height="70dp"

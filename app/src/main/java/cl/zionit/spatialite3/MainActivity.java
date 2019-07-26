@@ -12,6 +12,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.PowerManager;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -59,12 +60,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private TextToSpeech textToSpeech;
 
+    protected PowerManager.WakeLock wakelock;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        final PowerManager pm=(PowerManager)getSystemService(Context.POWER_SERVICE);
+        this.wakelock=pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "Spatialite:geocerca");
+        wakelock.acquire(10*60*1000L /*10 minutes*/);
+
+        empezarDescarga();
 
         if(getResources().getBoolean(R.bool.portrait_only)){
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -95,10 +103,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         run_point_in_polygon.setOnClickListener(this);
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        this.wakelock.release();
+    }
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        this.wakelock.acquire(10*60*1000L /*10 minutes*/);
+
 
         textToSpeech = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -187,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                         if (id[0] > 0){
                                             condicion = "saliendo de "+ response[1].toLowerCase();
                                         }
-                                        String saliendo = "Estás "+ condicion+" y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                                        String saliendo = "Estás "+ condicion;
                                         speak(saliendo);
                                     }
 
@@ -221,28 +237,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
 
-            Toast.makeText(MainActivity.this, "status changed " + provider + " status: " + status, Toast.LENGTH_SHORT).show();
+           // Toast.makeText(MainActivity.this, "status changed " + provider + " status: " + status, Toast.LENGTH_SHORT).show();
 
         }
 
         @Override
         public void onProviderEnabled(String provider) {
-            Toast.makeText(MainActivity.this, "Provider enabled " + provider, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(MainActivity.this, "Provider enabled " + provider, Toast.LENGTH_SHORT).show();
         }
 
         @Override
         public void onProviderDisabled(String provider) {
-            Toast.makeText(MainActivity.this, "Provider disabled " + provider, Toast.LENGTH_SHORT).show();
+           // Toast.makeText(MainActivity.this, "Provider disabled " + provider, Toast.LENGTH_SHORT).show();
         }
     }
 
     void descarga() {
 
-    final ProgressDialog dialog4 = new ProgressDialog(this);
-    dialog4.setTitle("espere...");
-    dialog4.setMessage("descargando datos desde el servidor");
-    dialog4.setCancelable(false);
-    dialog4.show();
+   // final ProgressDialog dialog4 = new ProgressDialog(this);
+    //dialog4.setTitle("espere...");
+    //dialog4.setMessage("descargando datos desde el servidor");
+   // dialog4.setCancelable(false);
+   // dialog4.show();
     ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
     Call<GsonResponsePolygons> callVersion = apiService.descargarDatos();
     callVersion.enqueue(new Callback<GsonResponsePolygons>() {
@@ -258,24 +274,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 gdbHandler.insertPolygon(dd.getQuery());
                             }
                         }
-                        dialog4.dismiss();
-                        showAlertForSuccess("Listo", "Datos descargados con exito");
+                        //dialog4.dismiss();
+                       // showAlertForSuccess("Listo", "Datos descargados con exito");
                         break;
                     case 3:
-                        showAlertForSuccess("Hey", "Problemas descargando los datos del servidor, contacte con un administrador");
-                        dialog4.dismiss();
+                        //showAlertForSuccess("Hey", "Problemas descargando los datos del servidor, contacte con un administrador");
+                        //dialog4.dismiss();
                         break;
                 }
             }else{
                 Toast.makeText(MainActivity.this, "Servidor devolvio vacio", Toast.LENGTH_SHORT).show();
-                dialog4.dismiss();
+                //dialog4.dismiss();
             }
         }
 
         @Override
         public void onFailure(@NonNull Call<GsonResponsePolygons> call, @NonNull Throwable t) {
             Toast.makeText(MainActivity.this, "onFailure: problemas obteniendo datos", Toast.LENGTH_SHORT).show();
-            dialog4.dismiss();
+            //dialog4.dismiss();
         }
     });
     }
@@ -292,9 +308,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
+    void empezarDescarga(){
+
+
+        InternetStateClass internet = new InternetStateClass(this);
+        if (internet.getConection()){
+           // dialog4.dismiss();
+            descarga();
+        }else{
+            //dialog4.dismiss();
+            //showAlertForSuccess("Sin conexion", "No tiene conexion a internet");
+        }
+        //dialog4.dismiss();
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
+
+        this.wakelock.release();
+
+
         gdbHandler.cleanup();
         Intent intent = new Intent(MainActivity.this,ServiceGps.class);
         stopService(intent);
@@ -305,21 +339,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         switch (v.getId()){
             case R.id.run_point_in_polygon:
-                final ProgressDialog dialog4= new ProgressDialog(this);
+                /*final ProgressDialog dialog4= new ProgressDialog(this);
                 dialog4.setTitle("espere");
                 dialog4.setMessage("Comprobando conexion");
                 dialog4.setCancelable(false);
-                dialog4.show();
+                dialog4.show();*/
 
                 InternetStateClass internet = new InternetStateClass(this);
                 if (internet.getConection()){
-                    dialog4.dismiss();
+                   //ialog4.dismiss();
                     descarga();
                 }else{
-                    dialog4.dismiss();
-                    showAlertForSuccess("Sin conexion", "No tiene conexion a internet");
+                   // dialog4.dismiss();
+                    //showAlertForSuccess("Sin conexion", "No tiene conexion a internet");
                 }
-                dialog4.dismiss();
+                //dialog4.dismiss();
                 break;
         }
     }

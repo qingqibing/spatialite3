@@ -232,7 +232,7 @@ public class ServiceGps extends IntentService {
                         if (id[0] > 0){
                             condicion = "saliendo de "+ response[1].toLowerCase();
                         }
-                        String saliendo = "Estás "+ condicion+" y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                        String saliendo = "Estás "+ condicion;
                         startForeground(FOREGROUND_ID,buildForegroundNotification(saliendo, saliendo,1));
                     }else{
                         startForeground(FOREGROUND_ID,buildForegroundNotification(point, "",1));
@@ -249,18 +249,18 @@ public class ServiceGps extends IntentService {
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
 
-            Toast.makeText(ServiceGps.this, "status changed " + provider + " status: " + status, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(ServiceGps.this, "status changed " + provider + " status: " + status, Toast.LENGTH_SHORT).show();
 
         }
 
         @Override
         public void onProviderEnabled(String provider) {
-            Toast.makeText(ServiceGps.this, "Provider enabled " + provider, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(ServiceGps.this, "Provider enabled " + provider, Toast.LENGTH_SHORT).show();
         }
 
         @Override
         public void onProviderDisabled(String provider) {
-            Toast.makeText(ServiceGps.this, "Provider disabled " + provider, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(ServiceGps.this, "Provider disabled " + provider, Toast.LENGTH_SHORT).show();
         }
     }
 
