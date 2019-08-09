@@ -48,7 +48,7 @@
 
         <TextView
             android:id="@+id/velocity"
-            android:text="@string/empty_velocity"
+            android:text="@string/empty_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:textAppearanceLarge"
@@ -125,6 +125,16 @@
     </LinearLayout>
 
 
+
+    <Button
+        android:id="@+id/btn_salir"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:text="salir"
+        android:background="@color/colorTextosRed"
+        />
 
     <Button
         android:visibility="gone"

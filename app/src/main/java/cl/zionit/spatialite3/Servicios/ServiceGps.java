@@ -6,6 +6,7 @@ import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -19,12 +20,12 @@ import android.speech.tts.TextToSpeech;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
-import android.util.Log;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.Locale;
 
+import cl.zionit.spatialite3.MainActivity;
 import cl.zionit.spatialite3.bd.GeoDatabaseHandler;
 import cl.zionit.spatialite3.utilidad.Utilidad;
 
@@ -140,6 +141,11 @@ public class ServiceGps extends IntentService {
             locationMangaer.removeUpdates(locationListener);
         }
 
+
+        if(gdbHandler != null) {
+            gdbHandler.cleanup();
+        }
+
     }
 
     @Override
@@ -164,16 +170,19 @@ public class ServiceGps extends IntentService {
             }
         }
 
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        PendingIntent pIntentEmail = PendingIntent.getActivity(getApplicationContext(), 55, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         NotificationCompat.Builder b = new NotificationCompat.Builder(this,channelId);
         b.setContentTitle("Geocercas")
                 .setContentText(filename)
+                .setStyle((new NotificationCompat.BigTextStyle()
+                        .bigText(filename)))
                 .setSound(null)
-                .setDefaults(Notification.DEFAULT_ALL)
+                .setDefaults(Notification.DEFAULT_LIGHTS)
                 .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+                .setContentIntent(pIntentEmail)
                 .setTicker("Obteniendo posición...");
-
-
         speak(texto);
 
         return(b.build());
@@ -186,6 +195,7 @@ public class ServiceGps extends IntentService {
         chan.setLightColor(Color.BLUE);
         chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         chan.setSound(null,null);
+
 
 
         NotificationManager service = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -204,42 +214,46 @@ public class ServiceGps extends IntentService {
             String[] response = gdbHandler.queryPointInPolygon(point);
             if (textToSpeech != null) {
                 if (response[0] != null && response[1] != null && response[2] != null) {
-                    if (id[0] != null && id[0] != Integer.parseInt(response[0])) {
-                        repeticiones[0] = 0;
-                        repeticionesEntrando[0] = 0;
-                        repeticionesSaliendo[0] = 0;
-                    }
 
-                    double valor = 0.0;
-                    try {
-                        valor = Double.parseDouble(response[2]);
-                    } catch (Exception e) {
-                        valor = 0.0;
-                    }
+//                    if (Integer.parseInt(response[5]) > 0) {
 
-
-                    if (valor == 0.0 && repeticiones[0] < 1) {
-                        repeticiones[0]++;
-                        final String s = "Estás en " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
-                        startForeground(FOREGROUND_ID,buildForegroundNotification(s, s,1));
-                    }else if ( ((id[0] != null && id[0] == 0 || id[0] != null && id[0] != Integer.parseInt(response[0])) && valor > 0.0 && distanciaAnterior[0] > 0.0) && repeticionesEntrando[0] < 1) {
-                        repeticionesEntrando[0]++;
-                        final String entrando = "Estás a " + Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2) + " metros de  " + " entrar a " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
-                        startForeground(FOREGROUND_ID, buildForegroundNotification(entrando, entrando, 1));
-                    }else if ((id[0] != null && id[0] == Integer.parseInt(response[0]) ) && (distanciaAnterior[0] == 0.0 && valor > 0.0) && repeticionesSaliendo[0] < 1) {
-                        repeticionesSaliendo[0]++;
-                        String condicion = "";
-                        if (id[0] > 0){
-                            condicion = "saliendo de "+ response[1].toLowerCase();
+                        if (id[0] != null && id[0] != Integer.parseInt(response[0])) {
+                            repeticiones[0] = 0;
+                            repeticionesEntrando[0] = 0;
+                            repeticionesSaliendo[0] = 0;
                         }
-                        String saliendo = "Estás "+ condicion;
-                        startForeground(FOREGROUND_ID,buildForegroundNotification(saliendo, saliendo,1));
-                    }else{
-                        startForeground(FOREGROUND_ID,buildForegroundNotification(point, "",1));
-                    }
 
-                    id[0] = Integer.parseInt(response[0]);
-                    distanciaAnterior[0] = Double.parseDouble(response[2]);
+                        double valor = 0.0;
+                        try {
+                            valor = Double.parseDouble(response[2]);
+                        } catch (Exception e) {
+                            valor = 0.0;
+                        }
+
+                        if (valor == 0.0 && repeticiones[0] < 1) {
+                            repeticiones[0]++;
+                            final String s = "Estás en " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                            startForeground(FOREGROUND_ID, buildForegroundNotification(s, s, 1));
+                        } else if (((id[0] != null && id[0] == 0 || id[0] != null && id[0] != Integer.parseInt(response[0])) && valor > 0.0) && repeticionesEntrando[0] < 1) {
+                            repeticionesEntrando[0]++;
+                            if (Integer.parseInt(response[5]) > 0 && Integer.parseInt(response[5]) >= valor) {
+                                final String entrando = "Estás a " + Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2) + " metros de  " + " entrar a " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                                startForeground(FOREGROUND_ID, buildForegroundNotification(entrando, entrando, 1));
+                            }
+                        } else if ((id[0] != null && id[0] == Integer.parseInt(response[0])) && (distanciaAnterior[0] == 0.0 && valor > 0.0) && repeticionesSaliendo[0] < 1) {
+                            repeticionesSaliendo[0]++;
+                            String condicion = "";
+                            if (id[0] > 0) {
+                                condicion = "saliendo de " + response[1].toLowerCase();
+                            }
+                            String saliendo = "Estás " + condicion;
+                            startForeground(FOREGROUND_ID, buildForegroundNotification(saliendo, saliendo, 1));
+                        } else {
+                            startForeground(FOREGROUND_ID, buildForegroundNotification(point, "", 1));
+                        }
+                        id[0] = Integer.parseInt(response[0]);
+                        distanciaAnterior[0] = Double.parseDouble(response[2]);
+//                    }
                 } else {
                     id[0] = 0;
                 }
@@ -247,21 +261,13 @@ public class ServiceGps extends IntentService {
         }
 
         @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-
-            //Toast.makeText(ServiceGps.this, "status changed " + provider + " status: " + status, Toast.LENGTH_SHORT).show();
-
-        }
+        public void onStatusChanged(String provider, int status, Bundle extras) {}
 
         @Override
-        public void onProviderEnabled(String provider) {
-            //Toast.makeText(ServiceGps.this, "Provider enabled " + provider, Toast.LENGTH_SHORT).show();
-        }
+        public void onProviderEnabled(String provider) {}
 
         @Override
-        public void onProviderDisabled(String provider) {
-            //Toast.makeText(ServiceGps.this, "Provider disabled " + provider, Toast.LENGTH_SHORT).show();
-        }
+        public void onProviderDisabled(String provider) { }
     }
 
     private void speak(String text) {

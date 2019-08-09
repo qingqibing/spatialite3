@@ -1,6 +1,7 @@
 package cl.zionit.spatialite3.bd;
 
 import android.content.Context;
+import android.database.sqlite.SQLiteException;
 import android.util.Log;
 
 import java.io.File;
@@ -42,6 +43,14 @@ public class GeoDatabaseHandler {
         try {
             spatialiteDb = new Database();
             spatialiteDb.open(cacheDatabase.getAbsolutePath(), Constants.SQLITE_OPEN_READWRITE | Constants.SQLITE_OPEN_CREATE);
+
+            try {
+                Stmt stmt = spatialiteDb.prepare("ALTER TABLE geocerca ADD COLUMN aviso_cercania_geo INTEGER default 1");
+                stmt.step();
+            } catch (SQLiteException ex) {
+                Log.w(TAG, "Altering geocerca : " + ex.getMessage());
+            }
+
         } catch (jsqlite.Exception e) {
             e.printStackTrace();
 //            Log.e(TAG_SL, e.getMessage());
@@ -72,8 +81,8 @@ public class GeoDatabaseHandler {
     }
 
     public String[] queryPointInPolygon(String gpsPoint) {
-        String query = "SELECT id,nombre, ST_Distance(`polygon`, GeomFromText('"+gpsPoint+"'))*111319 AS distancia, limite,descripcion FROM geocerca WHERE distancia < 100 ORDER BY distancia ASC LIMIT 1;";
-        String[] respuesta = new String[5];
+        String query = "SELECT id,nombre, ST_Distance(`polygon`, GeomFromText('"+gpsPoint+"'))*111319 AS distancia, limite,descripcion,aviso_cercania_geo  FROM geocerca ORDER BY distancia ASC LIMIT 1;";
+        String[] respuesta = new String[6];
         try {
             Stmt stmt = spatialiteDb.prepare(query);
             int maxColumns = stmt.column_count() ;
@@ -86,7 +95,7 @@ public class GeoDatabaseHandler {
             }
             stmt.close();
         } catch (jsqlite.Exception e) {
-            for (int i = 0; i < 5; i++){
+            for (int i = 0; i < 6; i++){
                 respuesta[i] = null;
             }
         }
@@ -113,7 +122,7 @@ public class GeoDatabaseHandler {
             stmt.step();
             stmt.close();
         } catch (jsqlite.Exception e) {
-//            Log.e(TAG_SL,e.getMessage());
+           Log.e(TAG_SL,e.getMessage());
         }
     }
 }

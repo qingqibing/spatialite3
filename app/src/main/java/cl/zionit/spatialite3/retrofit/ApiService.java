@@ -8,7 +8,7 @@ import retrofit2.http.Query;
 public interface ApiService {
 
     @GET("datos.php")
-    Call<GsonResponsePolygons> descargarDatos();
+    Call<GsonResponsePolygons> descargarDatos(@Query("imei") String imei);
 
 
 /*    @GET("new_obtener_dispo.php")

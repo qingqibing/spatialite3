@@ -1,7 +1,6 @@
 package cl.zionit.spatialite3;
 
 import android.Manifest;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -10,21 +9,29 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.PowerManager;
+import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
+import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -61,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextToSpeech textToSpeech;
 
     protected PowerManager.WakeLock wakelock;
+    private String imei;
 
 
     @Override
@@ -68,15 +76,38 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final PowerManager pm=(PowerManager)getSystemService(Context.POWER_SERVICE);
-        this.wakelock=pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "Spatialite:geocerca");
-        wakelock.acquire(10*60*1000L /*10 minutes*/);
+        final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        this.wakelock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "Spatialite:geocerca");
+        wakelock.acquire(10 * 60 * 1000L /*10 minutes*/);
 
-        empezarDescarga();
 
-        if(getResources().getBoolean(R.bool.portrait_only)){
+        //if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+         //   ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_PHONE_STATE}, INITIAL_REQUEST);
+        //}else {
+          //  TelephonyManager telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
+            //imei = telephonyManager.getDeviceId();
+
+            //imei = android.provider.Settings.Secure.getString(this.getApplicationContext().getContentResolver(), "android_id");
+
+
+            imei = Utilidad.getMACAddress("wlan0");
+            if(!TextUtils.equals(imei, "") || !TextUtils.isEmpty(imei) || imei != null){
+                empezarDescarga();
+            }
+
+
+        //}
+
+
+
+
+
+
+
+
+        if (getResources().getBoolean(R.bool.portrait_only)) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        }else{
+        } else {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }
 
@@ -86,6 +117,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         card_info = (TextView) findViewById(R.id.card_info);
         velocity = (TextView) findViewById(R.id.velocity);
         Button run_point_in_polygon = (Button) findViewById(R.id.run_point_in_polygon);
+        Button salir = (Button) findViewById(R.id.btn_salir);
 
         locationMangaer = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         locationListener = new MyLocationListener();
@@ -101,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         distanciaAnterior[0] = 0.0;
 
         run_point_in_polygon.setOnClickListener(this);
+        salir.setOnClickListener(this);
     }
 
     @Override
@@ -115,6 +148,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         this.wakelock.acquire(10*60*1000L /*10 minutes*/);
 
+
+        if(!checkIfLocationOpened()){
+            Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            startActivity(settingsIntent);
+        }
 
         textToSpeech = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -132,12 +170,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{
                             Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION},
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.READ_PHONE_STATE},
                     INITIAL_REQUEST);
         } else {
             locationMangaer.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
         }
     }
+
+    private boolean checkIfLocationOpened() {
+        String provider = Settings.Secure.getString(getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+        System.out.println("Provider contains=> " + provider);
+        if (provider.contains("gps") || provider.contains("network")){
+            return true;
+        }
+        return false;
+    }
+
 
     @Override
     protected void onPause() {
@@ -157,6 +206,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+
+
+/*        if (requestCode == INITIAL_REQUEST && ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED){
+            TelephonyManager telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
+            //imei = telephonyManager.getDeviceId();
+            //imei = android.provider.Settings.Secure.getString(this.getApplicationContext().getContentResolver(), "android_id");
+        }*/
+
+        if(requestCode == INITIAL_REQUEST &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+
+            imei = Utilidad.getMACAddress("wlan0");
+            empezarDescarga();
+            locationMangaer.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, locationListener);
+
+        }
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+    }
+
 
     /*----------Listener class to get coordinates ------------- */
     public class MyLocationListener implements LocationListener {
@@ -173,50 +246,66 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 String point = "POINT(" + loc.getLatitude() + " " + loc.getLongitude() + ")";
                                 String[] response = gdbHandler.queryPointInPolygon(point);
 
-                                if (response[0] != null && response[1] != null) {
-                                    if (id[0] != null && id[0] != Integer.parseInt(response[0])) {
-                                        repeticiones[0] = 0;
-                                        repeticionesEntrando[0] = 0;
-                                        repeticionesSaliendo[0] = 0;
-                                    }
-
-                                    double valor = 0.0;
-                                    try {
-                                        valor = Double.parseDouble(response[2]);
-                                    } catch (Exception e) {
-                                        valor = 0.0;
-                                    }
+                                if (response[0] != null && response[1] != null && response[2] != null) {
 
 
-                                    if (valor == 0.0 && repeticiones[0] < 1) {
-                                        repeticiones[0]++;
-                                        final String s = "Estás en " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
-                                        speak(s);
 
-                                    }else if ( ((id[0] != null && id[0] == 0 || id[0] != null && id[0] != Integer.parseInt(response[0])) && valor > 0.0 && distanciaAnterior[0] > 0.0) && repeticionesEntrando[0] < 1) {
-                                        repeticionesEntrando[0]++;
-                                        final String entrando = "Estás a " + Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2) + " metros de  " + " entrar a " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
-                                        speak(entrando);
-                                    }else if ((id[0] != null && id[0] == Integer.parseInt(response[0]) ) && (distanciaAnterior[0] == 0.0 && valor > 0.0) && repeticionesSaliendo[0] < 1) {
-                                        repeticionesSaliendo[0]++;
-                                        String condicion = "";
-                                        if (id[0] > 0){
-                                            condicion = "saliendo de "+ response[1].toLowerCase();
+                                        if (id[0] != null && id[0] != Integer.parseInt(response[0])) {
+                                            repeticiones[0] = 0;
+                                            repeticionesEntrando[0] = 0;
+                                            repeticionesSaliendo[0] = 0;
                                         }
-                                        String saliendo = "Estás "+ condicion;
-                                        speak(saliendo);
-                                    }
 
-                                    if (velocity != null) velocity.setText(response[3]);
-                                    if (card_info != null) card_info.setText(response[4]);
-                                    if (communicateTextView != null)communicateTextView.setText(response[1]);
+                                        double valor = 0.0;
+                                        try {
+                                            valor = Double.parseDouble(response[2]);
+                                        } catch (Exception e) {
+                                            valor = 0.0;
+                                        }
 
-                                    id[0] = Integer.parseInt(response[0]);
-                                    distanciaAnterior[0] = Double.parseDouble(response[2]);
+
+                                        if (valor == 0.0 && repeticiones[0] < 1) {
+                                            repeticiones[0]++;
+                                            final String s = "Estás en " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                                            speak(s);
+
+                                            if (velocity != null) velocity.setText(response[3]);
+                                            if (card_info != null) card_info.setText(response[4]);
+                                            if (communicateTextView != null) communicateTextView.setText(response[1]);
+
+                                        } else if (((id[0] != null && id[0] == 0 || id[0] != null && id[0] != Integer.parseInt(response[0])) && valor > 0.0) && repeticionesEntrando[0] < 1) {
+
+                                            repeticionesEntrando[0]++;
+
+                                            if (Integer.parseInt(response[5]) > 0 && Integer.parseInt(response[5]) >= valor) {
+                                                final String entrando = "Estás a " + Utilidad.redondeoDecimales(Double.parseDouble(response[2]), 2) + " metros de  " + " entrar a " + response[1].toLowerCase() + " y el maximo de velocidad es " + response[3] + " kilómetros por hora";
+                                                speak(entrando);
+                                            }
+
+                                            if (velocity != null) velocity.setText(response[3]);
+                                            if (card_info != null) card_info.setText(response[4]);
+                                            if (communicateTextView != null) communicateTextView.setText(response[1]);
+
+                                        } else if ((id[0] != null && id[0] == Integer.parseInt(response[0])) && (distanciaAnterior[0] == 0.0 && valor > 0.0) && repeticionesSaliendo[0] < 1) {
+                                            repeticionesSaliendo[0]++;
+                                            String condicion = "";
+                                            if (id[0] > 0) {
+                                                condicion = "saliendo de " + response[1].toLowerCase();
+                                            }
+                                            String saliendo = "Estás " + condicion;
+                                            speak(saliendo);
+
+                                            if (velocity != null)  velocity.setText(getResources().getString(R.string.empty_text));
+                                            if (card_info != null)card_info.setText("Ninguna geocerca encontrada");
+                                            if (communicateTextView != null)communicateTextView.setText("Ninguna geocerca encontrada");
+                                        }
+
+                                        id[0] = Integer.parseInt(response[0]);
+                                        distanciaAnterior[0] = Double.parseDouble(response[2]);
+//                                    }
                                 } else {
                                     id[0] = 0;
-                                    if (velocity != null)
-                                        velocity.setText(getResources().getString(R.string.empty_velocity));
+                                    if (velocity != null)  velocity.setText(getResources().getString(R.string.empty_text));
                                     if (card_info != null)card_info.setText("Ninguna geocerca encontrada");
                                     if (communicateTextView != null)communicateTextView.setText("Ninguna geocerca encontrada");
                                 }
@@ -252,6 +341,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+
+
+
     void descarga() {
 
    // final ProgressDialog dialog4 = new ProgressDialog(this);
@@ -260,7 +352,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
    // dialog4.setCancelable(false);
    // dialog4.show();
     ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
-    Call<GsonResponsePolygons> callVersion = apiService.descargarDatos();
+    Call<GsonResponsePolygons> callVersion = apiService.descargarDatos(imei);
     callVersion.enqueue(new Callback<GsonResponsePolygons>() {
         @Override
         public void onResponse(@NonNull Call<GsonResponsePolygons> call, @NonNull Response<GsonResponsePolygons> response) {
@@ -276,10 +368,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                         //dialog4.dismiss();
                        // showAlertForSuccess("Listo", "Datos descargados con exito");
+                        Toast.makeText(MainActivity.this, "Datos actualizados", Toast.LENGTH_SHORT).show();
+                        break;
+                    case 2:
+                        Toast.makeText(MainActivity.this, "Dispositivo bloqueado", Toast.LENGTH_SHORT).show();
                         break;
                     case 3:
+                        Toast.makeText(MainActivity.this, "No se encontraron datos para este dispositivo, vuelva a intentarlo", Toast.LENGTH_SHORT).show();
                         //showAlertForSuccess("Hey", "Problemas descargando los datos del servidor, contacte con un administrador");
                         //dialog4.dismiss();
+                        break;
+                    case 4:
+                        Toast.makeText(MainActivity.this, "Usuario agregado, contacte con su supervisor", Toast.LENGTH_SHORT).show();
                         break;
                 }
             }else{
@@ -316,6 +416,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
            // dialog4.dismiss();
             descarga();
         }else{
+            Toast.makeText(this, "sin conexión a internet", Toast.LENGTH_SHORT).show();
             //dialog4.dismiss();
             //showAlertForSuccess("Sin conexion", "No tiene conexion a internet");
         }
@@ -355,11 +456,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 //dialog4.dismiss();
                 break;
+
+            case R.id.btn_salir:
+                showAlertForSuccess("Atencion", "¿Está seguro que desea salir de la aplicación?");
+                break;
         }
     }
 
     private void showAlertForSuccess( String title, String message ){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         if(title != null) builder.setTitle(title);
         if(message != null) builder.setMessage(message);
         builder.setCancelable(false);
@@ -368,6 +473,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         builder.setPositiveButton("Aceptar", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
+                finish();
+            }
+        });
+        builder.setNegativeButton("cancelar", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
             }
         });
         builder.create().show();
